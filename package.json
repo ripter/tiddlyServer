@@ -1,0 +1,27 @@
+{
+  "name": "tiddlyserver",
+  "version": "0.0.1",
+  "description": "A server for TiddlyWiki",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ripter/tiddlyServer.git"
+  },
+  "keywords": [
+    "server",
+    "tiddlywiki"
+  ],
+  "author": "Chris Richards",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ripter/tiddlyServer/issues"
+  },
+  "homepage": "https://github.com/ripter/tiddlyServer#readme",
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "express": "^4.15.3"
+  }
+}
