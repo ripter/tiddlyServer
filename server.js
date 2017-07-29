@@ -35,6 +35,12 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
   res.sendStatus(204);
 });
 
+app.options('/', function(req, res) {
+  console.log('OPTIONS');
+  res.set('Allow', 'OPTIONS, GET, PUT, DELETE');
+  res.sendStatus(200);
+});
+
 app.listen(3000, function () {
   console.log('Example app listening on port 3000!');
 });

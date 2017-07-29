@@ -140,8 +140,6 @@ Error message and password prompt
 
 <li>$:/SiteTitle</li>
 
-<li>$:/state/tab--117082635</li>
-
 <li>$:/status/IsLoggedIn</li>
 
 <li>$:/status/UserName</li>
@@ -158,7 +156,11 @@ Error message and password prompt
 
 <li>New Server: Part One</li>
 
+<li>Server: Etags</li>
+
 <li>Server: Part Two</li>
+
+<li>Server: Put</li>
 
 <li>SquareStates</li>
 
@@ -8376,8 +8378,9 @@ Error message and password prompt
     }
 }</pre>
 </div>
-<div bag="default" created="20170708205149138" modified="20170729193453603" revision="0" title="$:/DefaultTiddlers" type="text/vnd.tiddlywiki">
-<pre>[[Server: Part Two]]
+<div bag="default" created="20170708205149138" modified="20170729220408753" revision="0" title="$:/DefaultTiddlers" type="text/vnd.tiddlywiki">
+<pre>[[Server: Etags]]
+[[Server: Part Two]]
 </pre>
 </div>
 <div status="complete" title="$:/Import">
@@ -8681,16 +8684,13 @@ Error message and password prompt
 <div bag="default" created="20170708204545924" modified="20170708204556444" revision="0" title="$:/SiteTitle" type="text/vnd.tiddlywiki">
 <pre>tenSquare</pre>
 </div>
-<div bag="default" created="20170729204347862" modified="20170729204347862" revision="1" title="$:/state/tab--117082635">
-<pre>$:/core/ui/TiddlerInfo/Advanced</pre>
-</div>
 <div bag="default" revision="2" title="$:/status/IsLoggedIn">
 <pre>yes</pre>
 </div>
 <div bag="default" revision="1" title="$:/status/UserName">
 <pre></pre>
 </div>
-<div list="$:/Import [[Server: Part Two]] [[Syncer Notes]]" title="$:/StoryList">
+<div list="$:/Import [[Server: Etags]] [[Server: Part Two]]" title="$:/StoryList">
 <pre></pre>
 </div>
 <div plugin-type="info" title="$:/temp/info-plugin" type="application/json">
@@ -8900,7 +8900,25 @@ So where should I go from here?
   * tiddlers to the `tiddlers/` folder
 </pre>
 </div>
-<div bag="default" created="20170728053831490" modified="20170729194959807" revision="0" tags="server investigation fork" title="Server: Part Two" type="text/x-markdown">
+<div bag="default" created="20170729215921624" modified="20170729230044587" revision="1" tags="server investigation fork" title="Server: Etags" type="text/x-markdown">
+<pre>TiddlyWiki is using a custom format for etags. So we need to adjust the server to send etags in that format.
+```
+&quot;&lt;bag&gt;/&lt;title&gt;/&lt;revision&gt;:&lt;hash&gt;&quot;
+```
+
+I can see in the network log, that the etags for editing this tiddler is 
+
+**Etag:&quot;default/Draft%20of%20'Server%3A%20Etags'/10:&quot;**
+
+That default looks like the same one from our status request. The revision number looks like it's something the server is keeping track of.
+
+Oh, no I see it now. Both the bag and the revision is send in the payload. I just need to pull it out and put it in the Etag.
+
+except for things like` $:/StoryList` which don't send the bag or revision number. I notice that if I restart the server, the revision number resets. So for items that don't have a revision, it might just keep a global revision. I can do that in express easily.
+
+</pre>
+</div>
+<div bag="default" created="20170728053831490" modified="20170729230130218" revision="1" tags="server investigation fork" title="Server: Part Two" type="text/x-markdown">
 <pre>## Saving Tiddlers
 Saving sounds easier than building the index.html. We can use this tiddlywiki call our server for the saves. There are a few ways we could do that.
 
@@ -8911,13 +8929,60 @@ Saving sounds easier than building the index.html. We can use this tiddlywiki ca
   * We can use the status API to set the endpoint.
 
 ## Tasks
+* Save the tiddlers in the filesystem.
+* `DELETE http://localhost:3000/bags/:bag/tiddlers/:title'`
 * ✅ Create [simple server](https://github.com/ripter/tiddlyServer) that can serve this html file.
   * just serving the static file, it does not make a call to `/status`
-* `PUT /recipes/default/tiddlers/`
-* `GET /status`
+* ✅ `PUT /recipes/default/tiddlers/:title`
+  * [Server: Put](#Server: Put)
+  * [Etags](#Server: Etags)
+* ✅ `GET /status`
   * Who triggers this call?
   * Triggered by [$:/core/modules/syncer.js](#Syncer Notes)
-* `GET /recipes/default/tiddlers.json`</pre>
+* ✅ `GET /recipes/default/tiddlers.json`
+  * returning `{}` for now. Getting no errors.
+  * [skinny tiddler list](#Skinny Tiddler List)</pre>
+</div>
+<div bag="default" created="20170729212930076" modified="20170729213919547" revision="0" tags="server investigation fork" title="Server: Put" type="text/x-markdown">
+<pre>So I added the route and told it just to return 200. But the tiddlywiki still says there is an error.
+```
+Uncaught TypeError: Cannot read property 'bag' of null
+    at Object.callback ($:/plugins/tiddlywiki/tiddlyweb/tiddlywebadaptor.js:184)
+    at XMLHttpRequest.request.onreadystatechange ($:/core/modules/utils/dom/http.js:47)
+```
+The code at that point:
+```
+// Save the details of the new revision of the tiddler
+var etagInfo = self.parseEtag(request.getResponseHeader(&quot;Etag&quot;));
+// Invoke the callback
+callback(null,{
+  bag: etagInfo.bag
+}, etagInfo.revision);
+```
+
+
+
+So digging into it, I see that while my server sets the Etag, It's a weak etag but I can enable a strong one with:
+```
+app.set('etag', 'strong');
+```
+
+But neither of those works. So I dig deeper. And find some helpful documentation on parseEtag:
+
+### Split a TiddlyWeb Etag into its constituent parts. For example:
+
+```
+&quot;system-images_public/unsyncedIcon/946151:9f11c278ccde3a3149f339f4a1db80dd4369fc04&quot;
+```
+
+The parts are:
+
+```
+&lt;bag&gt;/&lt;title&gt;/&lt;revision&gt;:&lt;hash&gt;
+```
+
+
+</pre>
 </div>
 <div bag="default" created="20170708235425660" modified="20170708235927099" revision="0" tags="design" title="SquareStates" type="text/x-markdown">
 <pre>Squares can be in one state at a time.
@@ -8933,7 +8998,7 @@ Saving sounds easier than building the index.html. We can use this tiddlywiki ca
   * Not valid for Preview
   * Valid for Scoring</pre>
 </div>
-<div bag="default" created="20170729195011689" modified="20170729204336512" revision="1" tags="server investigation" title="Syncer Notes" type="text/x-markdown">
+<div bag="default" created="20170729195011689" modified="20170729210008062" revision="0" tags="server investigation" title="Syncer Notes" type="text/x-markdown">
 <pre>[$:/core/modules/syncer.js](#$:/core/modules/syncer.js)
 
 * `Syncer.prototype.getStatus`
@@ -8956,7 +9021,21 @@ $tw.modules.forEachModuleOfType(&quot;syncadaptor&quot;,function(title,module) {
 
 My static version now has syncadaptors, but `module.adaptorClass` is undefined. So next we need to find where `module.adaptorClass` is set and fix the static version.
 
-Ahh, I see what is happening. I grabbed the wrong plugin. I need [$:/plugins/tiddlywiki/tiddlyweb/tiddlywebadaptor.js](#$:/plugins/tiddlywiki/tiddlyweb/tiddlywebadaptor.js) instead. This version has two sync adaptors and I grabbed the wrong one.</pre>
+Ahh, I see what is happening. I grabbed the wrong plugin. I need [$:/plugins/tiddlywiki/tiddlyweb/tiddlywebadaptor.js](#$:/plugins/tiddlywiki/tiddlyweb/tiddlywebadaptor.js) instead. This version has two sync adaptors and I grabbed the wrong one.
+
+Add Plugin: [$:/plugins/tiddlywiki/tiddlyweb](#$:/plugins/tiddlywiki/tiddlyweb)
+
+After adding that plugin, We get nice big error messages.  `(index):9292 Uncaught TypeError: Cannot read property 'username' of null`
+
+The call to `GET /status` is being called! Success. It doesn't return anything valid so it's not surprising that we get errors.
+
+So I added the status route to the server and just set the static value tiddlywiki.js is using.
+
+```
+app.get('/status', function (req, res) {
+  res.json({&quot;space&quot;:{&quot;recipe&quot;:&quot;default&quot;},&quot;tiddlywiki_version&quot;:&quot;5.1.14&quot;});
+});
+```</pre>
 </div>
 <div bag="default" created="20170708204626899" modified="20170708204723504" revision="0" tags="todo" title="TODO" type="text/vnd.tiddlywiki">
 <pre>* Add Markdown
