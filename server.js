@@ -10,14 +10,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 // The page will send us JSON back.
 app.use(bodyParser.json());
 
+// Handshake
 app.get('/status', function(req, res) {
   res.json({"space":{"recipe":"default"},"tiddlywiki_version":"5.1.14"});
 });
 
+//  Route for Skinny Tiddlers
 app.get('/recipes/default/tiddlers.json', function(req, res) {
   res.json({});
 });
 
+// Save Tiddler to disk
 app.put('/recipes/default/tiddlers/:title', function(req, res) {
   const title = encodeURIComponent(req.params.title);
   const revision = globalRevision++;
@@ -28,6 +31,7 @@ app.put('/recipes/default/tiddlers/:title', function(req, res) {
   res.sendStatus(200);
 });
 
+// Delete Tiddler from disk
 app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
   console.log('DELETE: /bags/:bag/tiddlers/:title');
   console.log('\treq.params', req.params);
@@ -35,6 +39,7 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
   res.sendStatus(204);
 });
 
+// Options we allow
 app.options('/', function(req, res) {
   console.log('OPTIONS');
   res.set('Allow', 'OPTIONS, GET, PUT, DELETE');
@@ -42,5 +47,5 @@ app.options('/', function(req, res) {
 });
 
 app.listen(3000, function () {
-  console.log('Example app listening on port 3000!');
+  console.log('listening on port 3000!');
 });
