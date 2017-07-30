@@ -1,8 +1,12 @@
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
-const app = express();
+const _ = require('lodash');
+const saveTiddler = require('./src/saveTiddler.js');
 
+
+const app = express();
+const skinnyTiddlers = [];
 let globalRevision = 1;
 
 // Setup static file server for the index.html
@@ -16,32 +20,52 @@ app.get('/status', function(req, res) {
 });
 
 //  Route for Skinny Tiddlers
-app.get('/recipes/default/tiddlers.json', function(req, res) {
+app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
+  res.json(skinnyTiddlers);
+});
+
+app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
+  console.log('GET: /recipes/:recipe/tiddlers/:title');
+  console.log('\treq.params', req.params);
   res.json({});
 });
 
 // Save Tiddler to disk
-app.put('/recipes/default/tiddlers/:title', function(req, res) {
-  const title = encodeURIComponent(req.params.title);
-  const revision = globalRevision++;
-  console.log('PUT: /recipes/default/tiddlers/:title');
-  console.log('\treq.params', req.params);
-  console.log('\treq.body', req.body);
-  res.set('Etag', `"default/${title}/${revision}:"`);
+app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
+  const { title, recipe } = req.params;
+  const tiddler = req.body;
+  let { revision } = tiddler;
+
+  // console.log('PUT: /recipes/:recipe/tiddlers/:title');
+  // console.log('\treq.params', req.params);
+  // console.log('\treq.body', req.body);
+
+  // Update the revision
+  // The wiki uses title + revision to know if it should re-load the tiddler.
+  if (revision) {
+    revision = parseInt(revision, 10) + 1;
+    tiddler.revision = revision;
+  }
+  // remove this tiddler from the list so we can add the new one.
+  _.remove(skinnyTiddlers, (t) => { return t.title === title });
+  // Save the tiddler and save the skinny
+  skinnyTiddlers.push(saveTiddler(tiddler));
+
+  // Set the Etag and return success
+  res.set('Etag', `"${recipe}/${encodeURIComponent(title)}/${revision}:"`);
   res.sendStatus(200);
 });
 
 // Delete Tiddler from disk
 app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
-  console.log('DELETE: /bags/:bag/tiddlers/:title');
-  console.log('\treq.params', req.params);
-  console.log('\treq.body', req.body);
+  // console.log('DELETE: /bags/:bag/tiddlers/:title');
+  // console.log('\treq.params', req.params);
+  // console.log('\treq.body', req.body);
   res.sendStatus(204);
 });
 
 // Options we allow
 app.options('/', function(req, res) {
-  console.log('OPTIONS');
   res.set('Allow', 'OPTIONS, GET, PUT, DELETE');
   res.sendStatus(200);
 });
