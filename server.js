@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
 const saveTiddler = require('./src/saveTiddler.js');
+const deleteTiddler = require('./src/deleteTiddler.js');
 
 
 const app = express();
@@ -37,23 +38,13 @@ app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
 app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
   const { title, recipe } = req.params;
   const tiddler = req.body;
-  let { revision } = tiddler;
 
-  // console.log('PUT: /recipes/:recipe/tiddlers/:title');
-  // console.log('\treq.params', req.params);
-  // console.log('\treq.body', req.body);
-
-  // Update the revision
-  // The wiki uses title + revision to know if it should re-load the tiddler.
-  if (revision) {
-    revision = parseInt(revision, 10) + 1;
-    tiddler.revision = revision;
-  }
   // remove this tiddler from the list so we can add the new one.
   _.remove(skinnyTiddlers, (t) => { return t.title === title });
   // Save the tiddler and save the skinny
   saveTiddler(tiddler)
     .then((skinny) => {
+      const { revision } = skinny;
       // save the updated skinny
       skinnyTiddlers.push(skinny);
       // Set the Etag and return success
@@ -64,15 +55,29 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
       console.log('Oops error', err);
       res.sendStatus(500);
     });
-
 });
 
 // Delete Tiddler from disk
 app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
-  // console.log('DELETE: /bags/:bag/tiddlers/:title');
-  // console.log('\treq.params', req.params);
-  // console.log('\treq.body', req.body);
-  res.sendStatus(204);
+  const { title, bag } = req.params;
+  let tiddler = _.remove(skinnyTiddlers, (t) => { return t.title === title });
+
+  if (tiddler.length === 0) {
+    // could not find the named tiddler
+    return res.sendStatus(404);
+  }
+
+  // unwrap from the array.
+  tiddler = tiddler[0];
+
+  deleteTiddler(tiddler)
+    .then(() => {
+      res.sendStatus(204);
+    })
+    .catch((err) => {
+      console.log('Oops error', err);
+      res.sendStatus(500);
+    });
 });
 
 // Options we allow

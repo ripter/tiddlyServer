@@ -1,21 +1,17 @@
 const fs = require('fs');
-const path = require('path');
-const _ = require('lodash');
+const getFilename = require('./getFilename.js');
+const updateRevision = require('./updateRevision.js');
 
 module.exports = function saveTiddler(tiddler) {
-  console.log('saveTiddler', tiddler);
+  const filename = getFilename(tiddler);
 
+  // Update the revision.
+  tiddler = updateRevision(tiddler);
+
+  // Write to disk as JSON file
   return new Promise((resolve, reject) => {
-    let title = _.snakeCase(tiddler.title);
-    // snake case will remove the $, add it back
-    if (_.startsWith(tiddler.title, '$')) {
-      title = '$_' + title;
-    }
-    const filename = path.normalize(path.join(__dirname, '../', '_tiddlers', `${title}.json`));
-
     fs.writeFile(filename, JSON.stringify(tiddler), (err) => {
       if (err) { return reject(err); }
-
       resolve(tiddler);
     });
   });
