@@ -23,6 +23,7 @@
   "dependencies": {
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
+    "helmet": "^3.8.1",
     "lodash": "^4.17.4"
   }
 }

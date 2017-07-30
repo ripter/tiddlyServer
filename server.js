@@ -1,5 +1,6 @@
 const path = require('path');
 const express = require('express');
+const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
 const saveTiddler = require('./src/saveTiddler.js');
@@ -9,6 +10,8 @@ const app = express();
 const skinnyTiddlers = [];
 let globalRevision = 1;
 
+// secure headers with helmet middleware
+app.use(helmet());
 // Setup static file server for the index.html
 app.use(express.static(path.join(__dirname, 'public')));
 // The page will send us JSON back.
@@ -49,11 +52,19 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
   // remove this tiddler from the list so we can add the new one.
   _.remove(skinnyTiddlers, (t) => { return t.title === title });
   // Save the tiddler and save the skinny
-  skinnyTiddlers.push(saveTiddler(tiddler));
+  saveTiddler(tiddler)
+    .then((skinny) => {
+      // save the updated skinny
+      skinnyTiddlers.push(skinny);
+      // Set the Etag and return success
+      res.set('Etag', `"${recipe}/${encodeURIComponent(title)}/${revision}:"`);
+      res.sendStatus(200);
+    })
+    .catch((err) => {
+      console.log('Oops error', err);
+      res.sendStatus(500);
+    });
 
-  // Set the Etag and return success
-  res.set('Etag', `"${recipe}/${encodeURIComponent(title)}/${revision}:"`);
-  res.sendStatus(200);
 });
 
 // Delete Tiddler from disk
