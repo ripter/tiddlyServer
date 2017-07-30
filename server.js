@@ -24,6 +24,8 @@ app.get('/status', function(req, res) {
 });
 
 //  Route for Skinny Tiddlers
+// The skinny tiddlers is like a manifest. If the title and revision don't match
+// the version on the page, it will make a call to re-load the tiddler data.
 app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
   res.json(skinnyTiddlers);
 });
