@@ -5,10 +5,11 @@ const bodyParser = require('body-parser');
 const _ = require('lodash');
 const saveTiddler = require('./src/saveTiddler.js');
 const deleteTiddler = require('./src/deleteTiddler.js');
+const loadSkinny = require('./src/loadSkinny.js');
 
 
 const app = express();
-const skinnyTiddlers = [];
+let skinnyTiddlers = [];
 let globalRevision = 1;
 
 // secure headers with helmet middleware
@@ -27,7 +28,10 @@ app.get('/status', function(req, res) {
 // The skinny tiddlers is like a manifest. If the title and revision don't match
 // the version on the page, it will make a call to re-load the tiddler data.
 app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
-  res.json(skinnyTiddlers);
+  if (skinnyTiddlers.length > 0) {
+    return res.json(skinnyTiddlers);
+  }
+
 });
 
 app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
@@ -88,6 +92,14 @@ app.options('/', function(req, res) {
   res.sendStatus(200);
 });
 
-app.listen(3000, function () {
-  console.log('listening on port 3000!');
+
+// load from disk
+loadSkinny().then((list) => {
+  skinnyTiddlers = list;
+  console.log('\nLoaded skinny', skinnyTiddlers);
+  app.listen(3000, function () {
+    console.log('listening on port 3000!');
+  });
+}).catch((err) => {
+  console.log('Oops', err);
 });
