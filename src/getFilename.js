@@ -1,4 +1,3 @@
-const path = require('path');
 const _ = require('lodash');
 
 /**
@@ -15,4 +14,4 @@ module.exports = function getFilename(tiddlerTitle) {
   }
 
   return `${title}.json`;
-}
+};

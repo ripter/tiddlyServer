@@ -13,7 +13,6 @@ const loadTiddler = require('./src/loadTiddler.js');
 const rootFolder = path.normalize(path.join(__dirname, '_tiddlers'));
 const app = express();
 let skinnyTiddlers = [];
-let globalRevision = 1;
 
 // secure headers with helmet middleware
 app.use(helmet());
@@ -24,7 +23,7 @@ app.use(bodyParser.json());
 
 // Handshake
 app.get('/status', function(req, res) {
-  res.json({"space":{"recipe":"default"},"tiddlywiki_version":"5.1.14"});
+  res.json({'space':{'recipe':'default'},'tiddlywiki_version':'5.1.14'});
 });
 
 //  Route for Skinny Tiddlers
@@ -34,11 +33,13 @@ app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
   if (skinnyTiddlers.length > 0) {
     return res.json(skinnyTiddlers);
   }
+  return res.json([]);
 });
 
 app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
   console.log('GET: /recipes/:recipe/tiddlers/:title');
   console.log('\treq.params', req.params);
+  const { title } = req.params;
   const pathToFile = path.join(rootFolder, getFilename(title));
   loadTiddler(pathToFile)
     .then((tiddler) => {
@@ -57,7 +58,7 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
   const pathToFile = path.join(rootFolder, getFilename(title));
 
   // remove this tiddler from the list so we can add the new one.
-  _.remove(skinnyTiddlers, (t) => { return t.title === title });
+  _.remove(skinnyTiddlers, (t) => { return t.title === title; });
   // Save the tiddler and save the skinny
   saveTiddler(pathToFile, tiddler)
     .then((skinny) => {
@@ -76,9 +77,9 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
 
 // Delete Tiddler from disk
 app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
-  const { title, bag } = req.params;
+  const { title } = req.params;
   const pathToFile = path.join(rootFolder, getFilename(title));
-  let tiddler = _.remove(skinnyTiddlers, (t) => { return t.title === title });
+  let tiddler = _.remove(skinnyTiddlers, (t) => { return t.title === title; });
 
   if (tiddler.length === 0) {
     // could not find the named tiddler
@@ -88,7 +89,7 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
   // unwrap from the array.
   tiddler = tiddler[0];
 
-  deleteTiddler(pathToFile)
+  return deleteTiddler(pathToFile)
     .then(() => {
       res.sendStatus(204);
     })

@@ -9,7 +9,7 @@ module.exports = function saveTiddler(pathToFile, tiddler) {
   return new Promise((resolve, reject) => {
     fs.writeFile(pathToFile, JSON.stringify(tiddler), (err) => {
       if (err) { return reject(err); }
-      resolve(tiddler);
+      return resolve(tiddler);
     });
   });
-}
+};

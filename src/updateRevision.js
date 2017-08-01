@@ -11,4 +11,4 @@ module.exports = function updateRevision(tiddler) {
 
   tiddler.revision = revision;
   return tiddler;
-}
+};
