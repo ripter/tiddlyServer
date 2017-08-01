@@ -3,11 +3,14 @@ const express = require('express');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
+const getFilename = require('./src/getFilename.js');
 const saveTiddler = require('./src/saveTiddler.js');
 const deleteTiddler = require('./src/deleteTiddler.js');
 const loadSkinny = require('./src/loadSkinny.js');
+const loadTiddler = require('./src/loadTiddler.js');
 
 
+const rootFolder = path.normalize(path.join(__dirname, '_tiddlers'));
 const app = express();
 let skinnyTiddlers = [];
 let globalRevision = 1;
@@ -31,24 +34,32 @@ app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
   if (skinnyTiddlers.length > 0) {
     return res.json(skinnyTiddlers);
   }
-
 });
 
 app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
   console.log('GET: /recipes/:recipe/tiddlers/:title');
   console.log('\treq.params', req.params);
-  res.json({});
+  const pathToFile = path.join(rootFolder, getFilename(title));
+  loadTiddler(pathToFile)
+    .then((tiddler) => {
+      res.json(tiddler);
+    })
+    .catch((err) => {
+      console.log('Oops error', err);
+      res.sendStatus(500);
+    });
 });
 
 // Save Tiddler to disk
 app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
   const { title, recipe } = req.params;
   const tiddler = req.body;
+  const pathToFile = path.join(rootFolder, getFilename(title));
 
   // remove this tiddler from the list so we can add the new one.
   _.remove(skinnyTiddlers, (t) => { return t.title === title });
   // Save the tiddler and save the skinny
-  saveTiddler(tiddler)
+  saveTiddler(pathToFile, tiddler)
     .then((skinny) => {
       const { revision } = skinny;
       // save the updated skinny
@@ -66,6 +77,7 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
 // Delete Tiddler from disk
 app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
   const { title, bag } = req.params;
+  const pathToFile = path.join(rootFolder, getFilename(title));
   let tiddler = _.remove(skinnyTiddlers, (t) => { return t.title === title });
 
   if (tiddler.length === 0) {
@@ -76,7 +88,7 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
   // unwrap from the array.
   tiddler = tiddler[0];
 
-  deleteTiddler(tiddler)
+  deleteTiddler(pathToFile)
     .then(() => {
       res.sendStatus(204);
     })
@@ -94,7 +106,7 @@ app.options('/', function(req, res) {
 
 
 // load from disk
-loadSkinny().then((list) => {
+loadSkinny(rootFolder).then((list) => {
   skinnyTiddlers = list;
   console.log('\nLoaded skinny', skinnyTiddlers);
   app.listen(3000, function () {
