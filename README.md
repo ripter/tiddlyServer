@@ -2,5 +2,5 @@
 Server for TiddlyWiki
 
 ```
-$npm start
+npm start
 ```

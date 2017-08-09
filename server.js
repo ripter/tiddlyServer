@@ -3,6 +3,8 @@ const express = require('express');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
+const commandLineArgs = require('command-line-args');
+
 const getFilename = require('./src/getFilename.js');
 const saveTiddler = require('./src/saveTiddler.js');
 const deleteTiddler = require('./src/deleteTiddler.js');
@@ -106,12 +108,19 @@ app.options('/', function(req, res) {
 });
 
 
+// Read the Command Line Options
+const options = commandLineArgs([
+  {name: 'port', type: Number, defaultValue: 3000},
+]);
+console.log('options', options);
+
+
 // load from disk
 loadSkinny(rootFolder).then((list) => {
   skinnyTiddlers = list;
-  console.log('\nLoaded skinny', skinnyTiddlers);
-  app.listen(3000, function () {
-    console.log('listening on port 3000!');
+
+  app.listen(options.port, function () {
+    console.log(`listening on port ${options.port}!`);
   });
 }).catch((err) => {
   console.log('Oops', err);
