@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
 const commandLineArgs = require('command-line-args');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
 
 const getFilename = require('./src/getFilename.js');
 const saveTiddler = require('./src/saveTiddler.js');
@@ -23,7 +25,60 @@ app.use(express.static(path.join(__dirname, 'public')));
 // The page will send us JSON back.
 app.use(bodyParser.json());
 
-// Handshake
+
+// app.use(require('cookie-parser')());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(require('express-session')({ secret: 'keyboard cat', resave: false, saveUninitialized: false }));
+// Add authentication
+passport.use(new LocalStrategy(
+  function(username, password, done) {
+    console.log('LocalStrategy', username, password)
+    return done(null, {name: username});
+  }
+));
+
+// Configure Passport authenticated session persistence.
+//
+// In order to restore authentication state across HTTP requests, Passport needs
+// to serialize users into and deserialize users out of the session.  The
+// typical implementation of this is as simple as supplying the user ID when
+// serializing, and querying the user record by ID from the database when
+// deserializing.
+passport.serializeUser(function(user, cb) {
+  console.log('serializeUser', user);
+  cb(null, user.name);
+});
+
+passport.deserializeUser(function(id, cb) {
+  console.log('deserializeUser', id);
+  cb(null, {name: id});
+});
+
+// app.use(require('express-session')({ secret: 'keyboard cat', resave: true, saveUninitialized: true }));
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+
+// Options we allow
+app.options('/', function(req, res) {
+  res.set('Allow', 'OPTIONS, GET, PUT, DELETE');
+  res.sendStatus(200);
+});
+
+app.post('/login',
+passport.authenticate('local', { failureRedirect: '/error.html' }),
+function(req, res) {
+  const { user } = req;
+  console.log('POST /login', user);
+  res.json(user);
+});
+
+//
+// Tiddly Wiki Routes
+//
+
+// TiddlyWiki Handshake
 app.get('/status', function(req, res) {
   res.json({'space':{'recipe':'default'},'tiddlywiki_version':'5.1.14'});
 });
@@ -39,8 +94,6 @@ app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
 });
 
 app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
-  console.log('GET: /recipes/:recipe/tiddlers/:title');
-  console.log('\treq.params', req.params);
   const { title } = req.params;
   const pathToFile = path.join(rootFolder, getFilename(title));
   loadTiddler(pathToFile)
@@ -101,24 +154,23 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
     });
 });
 
-// Options we allow
-app.options('/', function(req, res) {
-  res.set('Allow', 'OPTIONS, GET, PUT, DELETE');
-  res.sendStatus(200);
-});
 
+
+//
+// Main
+//
 
 // Read the Command Line Options
 const options = commandLineArgs([
   {name: 'port', type: Number, defaultValue: 3000},
 ]);
-console.log('options', options);
-
 
 // load from disk
+// load the skinny from the root folder and start the server
 loadSkinny(rootFolder).then((list) => {
+  // Save the fresh list so the endpoints can use them.
   skinnyTiddlers = list;
-
+  // Start the server with the fresh skinny list
   app.listen(options.port, function () {
     console.log(`listening on port ${options.port}!`);
   });
