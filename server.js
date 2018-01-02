@@ -2,6 +2,7 @@ const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
+const session = require('express-session');
 const _ = require('lodash');
 const commandLineArgs = require('command-line-args');
 const passport = require('passport');
@@ -12,8 +13,10 @@ const saveTiddler = require('./src/saveTiddler.js');
 const deleteTiddler = require('./src/deleteTiddler.js');
 const loadSkinny = require('./src/loadSkinny.js');
 const loadTiddler = require('./src/loadTiddler.js');
+const loadFile = require('./src/loadFile.js');
 
-
+const FAILURE_REDIRECT = '/error.html';
+const LOGIN_REDIRECT = '/login.html';
 const rootFolder = path.normalize(path.join(__dirname, '_tiddlers'));
 const app = express();
 let skinnyTiddlers = [];
@@ -24,41 +27,48 @@ app.use(helmet());
 app.use(express.static(path.join(__dirname, 'public')));
 // The page will send us JSON back.
 app.use(bodyParser.json());
-
-
-// app.use(require('cookie-parser')());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(require('express-session')({ secret: 'keyboard cat', resave: false, saveUninitialized: false }));
+app.use(session({
+  secret: (new Date).getTime().toString(36) + Math.round(Math.random() * 1000000).toString(32),
+  resave: false,
+  saveUninitialized: false
+}));
+
+//
 // Add authentication
 passport.use(new LocalStrategy(
   function(username, password, done) {
-    console.log('LocalStrategy', username, password)
-    return done(null, {name: username});
+    const user = [
+      {name: 'rose', root:'r1'},
+      {name: 'chris', root:'cr'},
+    ].find(user => user.name === username);
+    console.log('LocalStrategy', user)
+
+    //TODO: create the user's directory/index.html if it does not exist
+
+    if (user) {
+      // found the user
+      return done(null, user);
+    }
+    // could not find the user
+    return done(null, false);
   }
 ));
-
-// Configure Passport authenticated session persistence.
-//
-// In order to restore authentication state across HTTP requests, Passport needs
-// to serialize users into and deserialize users out of the session.  The
-// typical implementation of this is as simple as supplying the user ID when
-// serializing, and querying the user record by ID from the database when
-// deserializing.
 passport.serializeUser(function(user, cb) {
-  console.log('serializeUser', user);
-  cb(null, user.name);
+  // console.log('SERIALIZE', JSON.stringify(user));
+  cb(null, JSON.stringify(user));
 });
-
 passport.deserializeUser(function(id, cb) {
-  console.log('deserializeUser', id);
-  cb(null, {name: id});
+  // console.log('DESERIALIZE', JSON.parse(id));
+  cb(null, JSON.parse(id));
 });
-
-// app.use(require('express-session')({ secret: 'keyboard cat', resave: true, saveUninitialized: true }));
 app.use(passport.initialize());
 app.use(passport.session());
 
 
+//
+// Routes
+//
 
 // Options we allow
 app.options('/', function(req, res) {
@@ -66,13 +76,13 @@ app.options('/', function(req, res) {
   res.sendStatus(200);
 });
 
-app.post('/login',
-passport.authenticate('local', { failureRedirect: '/error.html' }),
-function(req, res) {
-  const { user } = req;
-  console.log('POST /login', user);
-  res.json(user);
-});
+//
+// Authentication Routes
+//
+app.post('/login', passport.authenticate('local', {
+  successRedirect: '/w',
+  failureRedirect: FAILURE_REDIRECT,
+}));
 
 //
 // Tiddly Wiki Routes
@@ -80,7 +90,16 @@ function(req, res) {
 
 // TiddlyWiki Handshake
 app.get('/status', function(req, res) {
-  res.json({'space':{'recipe':'default'},'tiddlywiki_version':'5.1.14'});
+  const { user } = req;
+
+  console.log('GET /status', user);
+  res.json({
+    tiddlywiki_version: '5.1.14',
+    username: user.name,
+    space: {
+      recipe: user.root,
+    },
+  });
 });
 
 //  Route for Skinny Tiddlers
@@ -94,8 +113,8 @@ app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
 });
 
 app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
-  const { title } = req.params;
-  const pathToFile = path.join(rootFolder, getFilename(title));
+  const { title, recipe  } = req.params;
+  const pathToFile = path.join(rootFolder, recipe, getFilename(title));
   loadTiddler(pathToFile)
     .then((tiddler) => {
       res.json(tiddler);
@@ -110,7 +129,7 @@ app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
 app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
   const { title, recipe } = req.params;
   const tiddler = req.body;
-  const pathToFile = path.join(rootFolder, getFilename(title));
+  const pathToFile = path.join(rootFolder, recipe, getFilename(title));
 
   // remove this tiddler from the list so we can add the new one.
   _.remove(skinnyTiddlers, (t) => { return t.title === title; });
@@ -132,8 +151,8 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
 
 // Delete Tiddler from disk
 app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
-  const { title } = req.params;
-  const pathToFile = path.join(rootFolder, getFilename(title));
+  const { title, bag } = req.params;
+  const pathToFile = path.join(rootFolder, bag, getFilename(title));
   let tiddler = _.remove(skinnyTiddlers, (t) => { return t.title === title; });
 
   if (tiddler.length === 0) {
@@ -155,6 +174,27 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
 });
 
 
+//
+// User Routes
+//
+
+// User's index page
+// Serve their version of the index.html file
+app.get('/w', function(req, res, next) {
+  if (!req.user) { return res.redirect(LOGIN_REDIRECT);}
+  const { user } = req;
+  const pathToIndex = path.join(rootFolder, user.root, 'index.html');
+
+  // load from disk
+  const promise = new Promise(loadFile(pathToIndex));
+  promise.then((data) => {
+    res.send(data);
+  }).catch((err) => {
+    console.log('Oops', err);
+    res.sendStatus(500);
+  });
+});
+
 
 //
 // Main
@@ -165,15 +205,7 @@ const options = commandLineArgs([
   {name: 'port', type: Number, defaultValue: 3000},
 ]);
 
-// load from disk
-// load the skinny from the root folder and start the server
-loadSkinny(rootFolder).then((list) => {
-  // Save the fresh list so the endpoints can use them.
-  skinnyTiddlers = list;
-  // Start the server with the fresh skinny list
-  app.listen(options.port, function () {
-    console.log(`listening on port ${options.port}!`);
-  });
-}).catch((err) => {
-  console.log('Oops', err);
+// Start the server with the fresh skinny list
+app.listen(options.port, function () {
+  console.log(`listening on port ${options.port}!`);
 });
