@@ -3,7 +3,6 @@ const express = require('express');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const _ = require('lodash');
 const commandLineArgs = require('command-line-args');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
@@ -19,7 +18,6 @@ const FAILURE_REDIRECT = '/error.html';
 const LOGIN_REDIRECT = '/login.html';
 const rootFolder = path.normalize(path.join(__dirname, '_tiddlers'));
 const app = express();
-let skinnyTiddlers = [];
 
 // secure headers with helmet middleware
 app.use(helmet());
@@ -31,7 +29,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
   secret: (new Date).getTime().toString(36) + Math.round(Math.random() * 1000000).toString(32),
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
 }));
 
 //
@@ -41,11 +39,10 @@ passport.use(new LocalStrategy(
     const user = [
       {name: 'rose', root:'r1'},
       {name: 'chris', root:'cr'},
-    ].find(user => user.name === username);
-    console.log('LocalStrategy', user)
+    ].find(item => item.name === username);
 
+    //TODO: Create new user the first time they log in.
     //TODO: create the user's directory/index.html if it does not exist
-
     if (user) {
       // found the user
       return done(null, user);
@@ -94,7 +91,7 @@ app.get('/status', function(req, res) {
 
   console.log('GET /status', user);
   res.json({
-    tiddlywiki_version: '5.1.14',
+    'tiddlywiki_version': '5.1.14',
     username: user.name,
     space: {
       recipe: user.root,
@@ -106,15 +103,27 @@ app.get('/status', function(req, res) {
 // The skinny tiddlers is like a manifest. If the title and revision don't match
 // the version on the page, it will make a call to re-load the tiddler data.
 app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
-  if (skinnyTiddlers.length > 0) {
-    return res.json(skinnyTiddlers);
-  }
-  return res.json([]);
+  const { recipe } = req.params;
+  const pathToRoot = path.join(rootFolder, recipe);
+  console.log(`GET /recipes/${recipe}/tiddlers.json`, pathToRoot);
+
+  loadSkinny(pathToRoot)
+    .then((skinnyTiddlers) => {
+      if (skinnyTiddlers.length > 0) {
+        return res.json(skinnyTiddlers);
+      }
+      return res.json([]);
+    })
+    .catch((err) => {
+      console.log('Oops error', err);
+      res.sendStatus(500);
+    });
 });
 
 app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
-  const { title, recipe  } = req.params;
+  const { title, recipe } = req.params;
   const pathToFile = path.join(rootFolder, recipe, getFilename(title));
+
   loadTiddler(pathToFile)
     .then((tiddler) => {
       res.json(tiddler);
@@ -131,14 +140,10 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
   const tiddler = req.body;
   const pathToFile = path.join(rootFolder, recipe, getFilename(title));
 
-  // remove this tiddler from the list so we can add the new one.
-  _.remove(skinnyTiddlers, (t) => { return t.title === title; });
   // Save the tiddler and save the skinny
   saveTiddler(pathToFile, tiddler)
     .then((skinny) => {
       const { revision } = skinny;
-      // save the updated skinny
-      skinnyTiddlers.push(skinny);
       // Set the Etag and return success
       res.set('Etag', `"${recipe}/${encodeURIComponent(title)}/${revision}:"`);
       res.sendStatus(200);
@@ -153,15 +158,6 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
 app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
   const { title, bag } = req.params;
   const pathToFile = path.join(rootFolder, bag, getFilename(title));
-  let tiddler = _.remove(skinnyTiddlers, (t) => { return t.title === title; });
-
-  if (tiddler.length === 0) {
-    // could not find the named tiddler
-    return res.sendStatus(404);
-  }
-
-  // unwrap from the array.
-  tiddler = tiddler[0];
 
   return deleteTiddler(pathToFile)
     .then(() => {
@@ -180,19 +176,20 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
 
 // User's index page
 // Serve their version of the index.html file
-app.get('/w', function(req, res, next) {
-  if (!req.user) { return res.redirect(LOGIN_REDIRECT);}
+app.get('/w', function(req, res) {
+  if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
   const { user } = req;
   const pathToIndex = path.join(rootFolder, user.root, 'index.html');
 
   // load from disk
-  const promise = new Promise(loadFile(pathToIndex));
-  promise.then((data) => {
-    res.send(data);
-  }).catch((err) => {
-    console.log('Oops', err);
-    res.sendStatus(500);
-  });
+  return new Promise(loadFile(pathToIndex))
+    .then((data) => {
+      res.send(data);
+    })
+    .catch((err) => {
+      console.log('Oops', err);
+      res.sendStatus(500);
+    });
 });
 
 

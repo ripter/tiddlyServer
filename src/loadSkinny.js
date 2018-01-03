@@ -3,7 +3,7 @@ const path = require('path');
 const loadTiddler = require('./loadTiddler.js');
 
 /**
- * @return {Array} skinnyTiddlers
+ * @return {Promise} skinnyTiddlers
  */
 module.exports = function loadSkinnyTiddlers(rootFolder) {
   const loadFileList = getFileList.bind(null, rootFolder);
@@ -16,7 +16,11 @@ module.exports = function loadSkinnyTiddlers(rootFolder) {
 function getFileList(rootFolder, resolve, reject) {
   fs.readdir(rootFolder, (err, files) => {
     if (err) { return reject(err); }
-    return resolve(files);
+    // filter to just JSON files
+    const filteredFiles = files.filter((filename) => {
+      return filename.endsWith('.json');
+    });
+    return resolve(filteredFiles);
   });
 }
 
