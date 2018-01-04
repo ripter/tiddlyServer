@@ -19,6 +19,9 @@ const LOGIN_REDIRECT = '/login.html';
 const rootFolder = path.normalize(path.join(__dirname, '_tiddlers'));
 const app = express();
 
+// special security file
+const authUsers = require('./authUsers.js');
+
 // secure headers with helmet middleware
 app.use(helmet());
 // Setup static file server for the index.html
@@ -34,23 +37,7 @@ app.use(session({
 
 //
 // Add authentication
-passport.use(new LocalStrategy(
-  function(username, password, done) {
-    const user = [
-      {name: 'rose', root:'r1'},
-      {name: 'chris', root:'cr'},
-    ].find(item => item.name === username);
-
-    //TODO: Create new user the first time they log in.
-    //TODO: create the user's directory/index.html if it does not exist
-    if (user) {
-      // found the user
-      return done(null, user);
-    }
-    // could not find the user
-    return done(null, false);
-  }
-));
+passport.use(new LocalStrategy(authUsers));
 passport.serializeUser(function(user, cb) {
   // console.log('SERIALIZE', JSON.stringify(user));
   cb(null, JSON.stringify(user));
@@ -87,10 +74,11 @@ app.post('/login', passport.authenticate('local', {
 
 // TiddlyWiki Handshake
 app.get('/status', function(req, res) {
+  if (!req.user) { return res.sendStatus(401); }
   const { user } = req;
 
-  console.log('GET /status', user);
-  res.json({
+  // console.log('GET /status', user);
+  return res.json({
     'tiddlywiki_version': '5.1.14',
     username: user.name,
     space: {
@@ -103,11 +91,12 @@ app.get('/status', function(req, res) {
 // The skinny tiddlers is like a manifest. If the title and revision don't match
 // the version on the page, it will make a call to re-load the tiddler data.
 app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
+  if (!req.user) { return res.sendStatus(401); }
   const { recipe } = req.params;
   const pathToRoot = path.join(rootFolder, recipe);
-  console.log(`GET /recipes/${recipe}/tiddlers.json`, pathToRoot);
+  // console.log(`GET /recipes/${recipe}/tiddlers.json`, pathToRoot);
 
-  loadSkinny(pathToRoot)
+  return loadSkinny(pathToRoot)
     .then((skinnyTiddlers) => {
       if (skinnyTiddlers.length > 0) {
         return res.json(skinnyTiddlers);
@@ -120,11 +109,16 @@ app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
     });
 });
 
+/**
+ * Load a tiddler by title
+ */
 app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
+  if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
   const { title, recipe } = req.params;
   const pathToFile = path.join(rootFolder, recipe, getFilename(title));
+  // console.log(`GET: /recipe/${recipe}/tiddlers/${title}`);
 
-  loadTiddler(pathToFile)
+  return loadTiddler(pathToFile)
     .then((tiddler) => {
       res.json(tiddler);
     })
@@ -134,14 +128,18 @@ app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
     });
 });
 
-// Save Tiddler to disk
+/**
+ * Save a tiddler by title
+ */
 app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
+  if (!req.user) { return res.sendStatus(401); }
   const { title, recipe } = req.params;
   const tiddler = req.body;
   const pathToFile = path.join(rootFolder, recipe, getFilename(title));
+  // console.log(`PUT: /recipe/${recipe}/tiddlers/${title}`);
 
   // Save the tiddler and save the skinny
-  saveTiddler(pathToFile, tiddler)
+  return saveTiddler(pathToFile, tiddler)
     .then((skinny) => {
       const { revision } = skinny;
       // Set the Etag and return success
@@ -156,8 +154,11 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
 
 // Delete Tiddler from disk
 app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
+  if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
   const { title, bag } = req.params;
-  const pathToFile = path.join(rootFolder, bag, getFilename(title));
+  const { user } = req;
+  const pathToFile = path.join(rootFolder, user.root, getFilename(title));
+  console.log(`DELETE: /bags/${bag}/tiddlers/${title}`);
 
   return deleteTiddler(pathToFile)
     .then(() => {
