@@ -27,7 +27,9 @@
     "express": "^4.15.4",
     "express-session": "^1.15.6",
     "helmet": "^3.8.1",
-    "lodash": "^4.17.4"
+    "lodash": "^4.17.4",
+    "passport": "^0.4.0",
+    "passport-local": "^1.0.0"
   },
   "devDependencies": {
     "eslint": "^4.3.0"

@@ -2,19 +2,25 @@ const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
-const _ = require('lodash');
+const session = require('express-session');
 const commandLineArgs = require('command-line-args');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
 
 const getFilename = require('./src/getFilename.js');
 const saveTiddler = require('./src/saveTiddler.js');
 const deleteTiddler = require('./src/deleteTiddler.js');
 const loadSkinny = require('./src/loadSkinny.js');
 const loadTiddler = require('./src/loadTiddler.js');
+const loadFile = require('./src/loadFile.js');
 
-
+const FAILURE_REDIRECT = '/error.html';
+const LOGIN_REDIRECT = '/login.html';
 const rootFolder = path.normalize(path.join(__dirname, '_tiddlers'));
 const app = express();
-let skinnyTiddlers = [];
+
+// special security file
+const authUsers = require('./authUsers.js');
 
 // secure headers with helmet middleware
 app.use(helmet());
@@ -22,28 +28,97 @@ app.use(helmet());
 app.use(express.static(path.join(__dirname, 'public')));
 // The page will send us JSON back.
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session({
+  secret: (new Date).getTime().toString(36) + Math.round(Math.random() * 1000000).toString(32),
+  resave: false,
+  saveUninitialized: false,
+}));
 
-// Handshake
+//
+// Add authentication
+passport.use(new LocalStrategy(authUsers));
+passport.serializeUser(function(user, cb) {
+  // console.log('SERIALIZE', JSON.stringify(user));
+  cb(null, JSON.stringify(user));
+});
+passport.deserializeUser(function(id, cb) {
+  // console.log('DESERIALIZE', JSON.parse(id));
+  cb(null, JSON.parse(id));
+});
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+//
+// Routes
+//
+
+// Options we allow
+app.options('/', function(req, res) {
+  res.set('Allow', 'OPTIONS, GET, PUT, DELETE');
+  res.sendStatus(200);
+});
+
+//
+// Authentication Routes
+//
+app.post('/login', passport.authenticate('local', {
+  successRedirect: '/w',
+  failureRedirect: FAILURE_REDIRECT,
+}));
+
+//
+// Tiddly Wiki Routes
+//
+
+// TiddlyWiki Handshake
 app.get('/status', function(req, res) {
-  res.json({'space':{'recipe':'default'},'tiddlywiki_version':'5.1.14'});
+  if (!req.user) { return res.sendStatus(401); }
+  const { user } = req;
+
+  // console.log('GET /status', user);
+  return res.json({
+    'tiddlywiki_version': '5.1.14',
+    username: user.name,
+    space: {
+      recipe: user.root,
+    },
+  });
 });
 
 //  Route for Skinny Tiddlers
 // The skinny tiddlers is like a manifest. If the title and revision don't match
 // the version on the page, it will make a call to re-load the tiddler data.
 app.get('/recipes/:recipe/tiddlers.json', function(req, res) {
-  if (skinnyTiddlers.length > 0) {
-    return res.json(skinnyTiddlers);
-  }
-  return res.json([]);
+  if (!req.user) { return res.sendStatus(401); }
+  const { recipe } = req.params;
+  const pathToRoot = path.join(rootFolder, recipe);
+  // console.log(`GET /recipes/${recipe}/tiddlers.json`, pathToRoot);
+
+  return loadSkinny(pathToRoot)
+    .then((skinnyTiddlers) => {
+      if (skinnyTiddlers.length > 0) {
+        return res.json(skinnyTiddlers);
+      }
+      return res.json([]);
+    })
+    .catch((err) => {
+      console.log('Oops error', err);
+      res.sendStatus(500);
+    });
 });
 
+/**
+ * Load a tiddler by title
+ */
 app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
-  console.log('GET: /recipes/:recipe/tiddlers/:title');
-  console.log('\treq.params', req.params);
-  const { title } = req.params;
-  const pathToFile = path.join(rootFolder, getFilename(title));
-  loadTiddler(pathToFile)
+  if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
+  const { title, recipe } = req.params;
+  const pathToFile = path.join(rootFolder, recipe, getFilename(title));
+  // console.log(`GET: /recipe/${recipe}/tiddlers/${title}`);
+
+  return loadTiddler(pathToFile)
     .then((tiddler) => {
       res.json(tiddler);
     })
@@ -53,20 +128,20 @@ app.get('/recipes/:recipe/tiddlers/:title', function(req, res) {
     });
 });
 
-// Save Tiddler to disk
+/**
+ * Save a tiddler by title
+ */
 app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
+  if (!req.user) { return res.sendStatus(401); }
   const { title, recipe } = req.params;
   const tiddler = req.body;
-  const pathToFile = path.join(rootFolder, getFilename(title));
+  const pathToFile = path.join(rootFolder, recipe, getFilename(title));
+  // console.log(`PUT: /recipe/${recipe}/tiddlers/${title}`);
 
-  // remove this tiddler from the list so we can add the new one.
-  _.remove(skinnyTiddlers, (t) => { return t.title === title; });
   // Save the tiddler and save the skinny
-  saveTiddler(pathToFile, tiddler)
+  return saveTiddler(pathToFile, tiddler)
     .then((skinny) => {
       const { revision } = skinny;
-      // save the updated skinny
-      skinnyTiddlers.push(skinny);
       // Set the Etag and return success
       res.set('Etag', `"${recipe}/${encodeURIComponent(title)}/${revision}:"`);
       res.sendStatus(200);
@@ -79,17 +154,11 @@ app.put('/recipes/:recipe/tiddlers/:title', function(req, res) {
 
 // Delete Tiddler from disk
 app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
-  const { title } = req.params;
-  const pathToFile = path.join(rootFolder, getFilename(title));
-  let tiddler = _.remove(skinnyTiddlers, (t) => { return t.title === title; });
-
-  if (tiddler.length === 0) {
-    // could not find the named tiddler
-    return res.sendStatus(404);
-  }
-
-  // unwrap from the array.
-  tiddler = tiddler[0];
+  if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
+  const { title, bag } = req.params;
+  const { user } = req;
+  const pathToFile = path.join(rootFolder, user.root, getFilename(title));
+  console.log(`DELETE: /bags/${bag}/tiddlers/${title}`);
 
   return deleteTiddler(pathToFile)
     .then(() => {
@@ -101,27 +170,40 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
     });
 });
 
-// Options we allow
-app.options('/', function(req, res) {
-  res.set('Allow', 'OPTIONS, GET, PUT, DELETE');
-  res.sendStatus(200);
+
+//
+// User Routes
+//
+
+// User's index page
+// Serve their version of the index.html file
+app.get('/w', function(req, res) {
+  if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
+  const { user } = req;
+  const pathToIndex = path.join(rootFolder, user.root, 'index.html');
+
+  // load from disk
+  return new Promise(loadFile(pathToIndex))
+    .then((data) => {
+      res.send(data);
+    })
+    .catch((err) => {
+      console.log('Oops', err);
+      res.sendStatus(500);
+    });
 });
 
+
+//
+// Main
+//
 
 // Read the Command Line Options
 const options = commandLineArgs([
   {name: 'port', type: Number, defaultValue: 3000},
 ]);
-console.log('options', options);
 
-
-// load from disk
-loadSkinny(rootFolder).then((list) => {
-  skinnyTiddlers = list;
-
-  app.listen(options.port, function () {
-    console.log(`listening on port ${options.port}!`);
-  });
-}).catch((err) => {
-  console.log('Oops', err);
+// Start the server with the fresh skinny list
+app.listen(options.port, function () {
+  console.log(`listening on port ${options.port}!`);
 });
