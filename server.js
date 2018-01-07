@@ -64,7 +64,7 @@ app.options('/', function(req, res) {
 // Authentication Routes
 //
 app.post('/login', passport.authenticate('local', {
-  successRedirect: '/w',
+  successRedirect: '/',
   failureRedirect: FAILURE_REDIRECT,
 }));
 
@@ -175,7 +175,7 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
 // User Routes
 //
 
-// User's index page
+// User's personal index page
 // Serve their version of the index.html file
 app.get('/w', function(req, res) {
   if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
