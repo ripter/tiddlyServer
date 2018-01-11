@@ -11,6 +11,7 @@ const getFilename = require('./src/getFilename.js');
 const saveTiddler = require('./src/saveTiddler.js');
 const deleteTiddler = require('./src/deleteTiddler.js');
 const loadSkinny = require('./src/loadSkinny.js');
+const loadShadows = require('./src/loadShadows.js');
 const loadTiddler = require('./src/loadTiddler.js');
 const loadFile = require('./src/loadFile.js');
 
@@ -65,20 +66,22 @@ app.options('/', function(req, res) {
 app.get('/', function(req, res) {
   if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
   const { user } = req;
-  const pathToFile = path.join(rootFolder, user.root, getFilename('$:default_tiddlers'));
-  return loadTiddler(pathToFile)
-    .then((tiddler) => {
+  const pathToRoot = path.join(rootFolder, user.root);
+  return loadShadows(pathToRoot)
+    .then((shadowTiddlers) => {
+      if (shadowTiddlers.length === 0) {
+        shadowTiddlers = [];
+      }
+
       res.render('default', {
         user,
-        systemTiddlers: [tiddler],
+        systemTiddlers: shadowTiddlers,
       });
     })
     .catch((err) => {
       console.log('Oops error', err);
       res.sendStatus(500);
     });
-
-
 });
 
 //

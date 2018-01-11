@@ -2,7 +2,7 @@ const _ = require('lodash');
 
 /**
  * Returns the filename for the tiddler
- * @param  {Object} tiddler
+ * @param  {String} title
  * @return {String}
  */
 module.exports = function getFilename(tiddlerTitle) {
