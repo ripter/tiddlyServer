@@ -26,6 +26,8 @@ const authUsers = require('./authUsers.js');
 app.use(helmet());
 // Setup static file server for the index.html
 app.use(express.static(path.join(__dirname, 'public')));
+// Setup server side rendering
+app.set('view engine', 'ejs');
 // The page will send us JSON back.
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -58,6 +60,25 @@ app.use(passport.session());
 app.options('/', function(req, res) {
   res.set('Allow', 'OPTIONS, GET, PUT, DELETE');
   res.sendStatus(200);
+});
+
+app.get('/', function(req, res) {
+  if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
+  const { user } = req;
+  const pathToFile = path.join(rootFolder, user.root, getFilename('$:default_tiddlers'));
+  return loadTiddler(pathToFile)
+    .then((tiddler) => {
+      res.render('default', {
+        user,
+        systemTiddlers: [tiddler],
+      });
+    })
+    .catch((err) => {
+      console.log('Oops error', err);
+      res.sendStatus(500);
+    });
+
+
 });
 
 //
@@ -177,21 +198,21 @@ app.delete('/bags/:bag/tiddlers/:title', function(req, res) {
 
 // User's personal index page
 // Serve their version of the index.html file
-app.get('/w', function(req, res) {
-  if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
-  const { user } = req;
-  const pathToIndex = path.join(rootFolder, user.root, 'index.html');
-
-  // load from disk
-  return new Promise(loadFile(pathToIndex))
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      console.log('Oops', err);
-      res.sendStatus(500);
-    });
-});
+// app.get('/w', function(req, res) {
+//   if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
+//   const { user } = req;
+//   const pathToIndex = path.join(rootFolder, user.root, 'index.html');
+//
+//   // load from disk
+//   return new Promise(loadFile(pathToIndex))
+//     .then((data) => {
+//       res.send(data);
+//     })
+//     .catch((err) => {
+//       console.log('Oops', err);
+//       res.sendStatus(500);
+//     });
+// });
 
 
 //
