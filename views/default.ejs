@@ -8535,14 +8535,19 @@ Error message and password prompt
 </div>
 
 
-
+<%# Include a JS file in a way that leaves it nice to edit and work with %>
 <div title="$:/core/modules/startup/story.js" type="application/javascript" module-type="startup">
 <pre><%- include('core/$_core_modules_startup_story') %>
 </pre>
 </div>
 
+<%# The special shadow tiddlers in a json format %>
 <% systemTiddlers.forEach(function(tiddler) { %>
-  <div title="<%= tiddler.title %>" type="<%=tiddler.type%>" module-type="<%=tiddler['module-type']%>">
+  <div <% Object.keys(tiddler).forEach(function(propName) { %>
+    <% if (propName !== 'text' && propName !== 'fields') { %>
+      <%= propName %> = <%= tiddler[propName] %>
+    <% } %>
+  <% }) %> >
   <pre><%- tiddler.text -%></pre>
   </div>
 <% }) %>
