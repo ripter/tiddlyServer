@@ -1,4 +1,4 @@
-.PHONY: all start lint prod clean artifact.build
+.PHONY: all start lint prod clean artifact.build artifact.extract
 
 # runs with `make`
 all: start lint
@@ -25,3 +25,6 @@ clean:
 
 artifact.build:
 	tar czf artifact.tar.gz public/ src/ views/ server.js package.json
+
+artifact.extract:
+	tar xzf artifact.tar.gz
