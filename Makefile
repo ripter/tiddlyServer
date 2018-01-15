@@ -1,4 +1,4 @@
-.PHONY: all start lint prod clean
+.PHONY: all start lint prod clean artifact.build
 
 # runs with `make`
 all: start lint
@@ -22,3 +22,6 @@ node_modules/:
 
 clean:
 	-rm -R node_modules/
+
+artifact.build:
+	tar czf artifact.tar.gz public/ src/ views/ server.js package.json

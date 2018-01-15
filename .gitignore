@@ -6,6 +6,7 @@ node_modules/
 
 # Don't check in tiddlers for security
 _tiddlers/*
-
 # Don't check in the auth function for security
 authUsers.js
+# Don't check in the build artifact
+artifact.tar.gz
