@@ -64,7 +64,13 @@ app.options('/', function(req, res) {
 });
 
 app.get('/', function(req, res) {
-  if (!req.user) { return res.redirect(LOGIN_REDIRECT); }
+  // Logged out users
+  if (!req.user) {
+    return res.render('default', {
+      systemTiddlers: [],
+    });
+  }
+  // Logged in users
   const { user } = req;
   const pathToRoot = path.join(rootFolder, user.root);
   return loadShadows(pathToRoot)
@@ -73,15 +79,15 @@ app.get('/', function(req, res) {
         shadowTiddlers = [];
       }
 
-      res.render('default', {
+      return res.render('default', {
         user,
         systemTiddlers: shadowTiddlers,
       });
     })
     .catch((err) => {
       console.log('Oops error', err);
-      res.sendStatus(500);
     });
+    return res.sendStatus(500);
 });
 
 //

@@ -7190,9 +7190,9 @@ Error message and password prompt
             &quot;description&quot;: &quot;{{$:/language/Buttons/UnfoldAll/Hint}}&quot;,
             &quot;text&quot;: &quot;&lt;$button tooltip={{$:/language/Buttons/UnfoldAll/Hint}} aria-label={{$:/language/Buttons/UnfoldAll/Caption}} class=&lt;&lt;tv-config-toolbar-class&gt;&gt;&gt;\n&lt;$action-sendmessage $message=\&quot;tm-unfold-all-tiddlers\&quot; $param=&lt;&lt;currentTiddler&gt;&gt; foldedStatePrefix=\&quot;$:/state/folded/\&quot;/&gt;\n&lt;$list filter=\&quot;[&lt;tv-config-toolbar-icons&gt;prefix[yes]]\&quot; variable=\&quot;listItem\&quot;&gt;\n{{$:/core/images/unfold-all-button}}\n&lt;/$list&gt;\n&lt;$list filter=\&quot;[&lt;tv-config-toolbar-text&gt;prefix[yes]]\&quot;&gt;\n&lt;span class=\&quot;tc-btn-text\&quot;&gt;&lt;$text text={{$:/language/Buttons/UnfoldAll/Caption}}/&gt;&lt;/span&gt;\n&lt;/$list&gt;\n&lt;/$button&gt;&quot;
         },
-        &quot;$:/core/ui/PageTemplate/pagecontrols&quot;: {
-            &quot;title&quot;: &quot;$:/core/ui/PageTemplate/pagecontrols&quot;,
-            &quot;text&quot;: &quot;\\define config-title()\n$:/config/PageControlButtons/Visibility/$(listItem)$\n\\end\n&lt;div class=\&quot;tc-page-controls\&quot;&gt;\n&lt;$list filter=\&quot;[all[shadows+tiddlers]tag[$:/tags/PageControls]!has[draft.of]]\&quot; variable=\&quot;listItem\&quot;&gt;\n&lt;$reveal type=\&quot;nomatch\&quot; state=&lt;&lt;config-title&gt;&gt; text=\&quot;hide\&quot;&gt;\n&lt;$transclude tiddler=&lt;&lt;listItem&gt;&gt; mode=\&quot;inline\&quot;/&gt;\n&lt;/$reveal&gt;\n&lt;/$list&gt;\n&lt;/div&gt;\n\n&quot;
+        "$:/core/ui/PageTemplate/pagecontrols": {
+            "title": "$:/core/ui/PageTemplate/pagecontrols",
+            "text": "\\define config-title()\n$:/config/PageControlButtons/Visibility/$(listItem)$\n\\end\n&lt;div class=\&quot;tc-page-controls\&quot;&gt;\n&lt;$list filter=\&quot;[all[shadows+tiddlers]tag[$:/tags/PageControls]!has[draft.of]]\&quot; variable=\&quot;listItem\&quot;&gt;\n&lt;$reveal type=\&quot;nomatch\&quot; state=&lt;&lt;config-title&gt;&gt; text=\&quot;hide\&quot;&gt;\n&lt;$transclude tiddler=&lt;&lt;listItem&gt;&gt; mode=\&quot;inline\&quot;/&gt;\n&lt;/$reveal&gt;\n&lt;/$list&gt;\n&lt;/div&gt;\n\n&quot;
         },
         &quot;$:/core/ui/PageStylesheet&quot;: {
             &quot;title&quot;: &quot;$:/core/ui/PageStylesheet&quot;,
@@ -8335,39 +8335,44 @@ Error message and password prompt
 <div author="JeremyRuston" bag="default" core-version="&gt;=5.0.0" dependents="" description="TiddlyWeb and TiddlySpace components" list="readme" plugin-type="plugin" revision="0" title="$:/plugins/tiddlywiki/tiddlyweb" type="application/json" version="5.1.14">
 <pre>{
     "tiddlers": {
-        &quot;GettingStarted&quot;: {
-            &quot;title&quot;: &quot;GettingStarted&quot;,
-            &quot;tags&quot;: &quot;$:/tags/GettingStarted&quot;,
-            &quot;caption&quot;: &quot;Step 1&lt;br&gt;Syncing&quot;,
-            &quot;text&quot;: &quot;Welcome to ~TiddlyWiki and the ~TiddlyWiki community\n\nVisit http://tiddlywiki.com/ to find out more about ~TiddlyWiki and what it can do.\n\n! Syncing Changes to the Server\n\nBefore you can start storing important information in ~TiddlyWiki it is important to make sure that your changes are being reliably saved by the server.\n\n# Create a new tiddler using the {{$:/core/images/new-button}} button in the sidebar on the right\n# Click the {{$:/core/images/done-button}} button at the top right of the new tiddler\n# Check the ~TiddlyWiki command line for a message confirming the tiddler has been saved\n# Refresh the page in the browser to and verify that the new tiddler has been correctly saved\n&quot;
+        "GettingStarted": {
+            "title": "GettingStarted",
+            "tags": "$:/tags/GettingStarted",
+            "caption": "Step 1&lt;br&gt;Syncing",
+            "text": "Welcome to ~TiddlyWiki and the ~TiddlyWiki community\n\nVisit http://tiddlywiki.com/ to find out more about ~TiddlyWiki and what it can do.\n\n! Syncing Changes to the Server\n\nBefore you can start storing important information in ~TiddlyWiki it is important to make sure that your changes are being reliably saved by the server.\n\n# Create a new tiddler using the {{$:/core/images/new-button}} button in the sidebar on the right\n# Click the {{$:/core/images/done-button}} button at the top right of the new tiddler\n# Check the ~TiddlyWiki command line for a message confirming the tiddler has been saved\n# Refresh the page in the browser to and verify that the new tiddler has been correctly saved\n"
         },
-        &quot;$:/config/SaveWikiButton/Template&quot;: {
-            &quot;title&quot;: &quot;$:/config/SaveWikiButton/Template&quot;,
-            &quot;text&quot;: &quot;$:/plugins/tiddlywiki/tiddlyweb/save/offline&quot;
+        "$:/config/SaveWikiButton/Template": {
+            "title": "$:/config/SaveWikiButton/Template",
+            "text": "$:/plugins/tiddlywiki/tiddlyweb/save/offline"
         },
-        &quot;$:/plugins/tiddlywiki/tiddlyweb/ServerControlPanel&quot;: {
-            &quot;title&quot;: &quot;$:/plugins/tiddlywiki/tiddlyweb/ServerControlPanel&quot;,
-            &quot;caption&quot;: &quot;Server&quot;,
-            &quot;tags&quot;: &quot;$:/tags/ControlPanel&quot;,
-            &quot;text&quot;: &quot;&lt;$reveal state=\&quot;$:/status/IsLoggedIn\&quot; type=\&quot;nomatch\&quot; text=\&quot;yes\&quot;&gt;\nLog in to ~TiddlyWeb: &lt;$button message=\&quot;tm-login\&quot;&gt;Login&lt;/$button&gt;\n&lt;/$reveal&gt;\n&lt;$reveal state=\&quot;$:/status/IsLoggedIn\&quot; type=\&quot;match\&quot; text=\&quot;yes\&quot;&gt;\nLogged in as {{$:/status/UserName}} &lt;$button message=\&quot;tm-logout\&quot;&gt;Logout&lt;/$button&gt;\n&lt;/$reveal&gt;\n\n----\n\nHost configuration: &lt;$edit-text tiddler=\&quot;$:/config/tiddlyweb/host\&quot; tag=\&quot;input\&quot; default=\&quot;\&quot;/&gt;\n\n&lt;blockquote&gt;//for example, `$protocol$//$host$/folder`, where `$protocol$` is replaced by the protocol (typically `http` or `https`), and `$host$` by the host name//&lt;/blockquote&gt;\n\n----\n\n&lt;$button message=\&quot;tm-server-refresh\&quot;&gt;Refresh&lt;/$button&gt; to fetch changes from the server immediately\n&quot;
+        "$:/plugins/tiddlywiki/tiddlyweb/ServerControlPanel": {
+            "title": "$:/plugins/tiddlywiki/tiddlyweb/ServerControlPanel",
+            "caption": "Server",
+            "tags": "$:/tags/ControlPanel",
+            "text": "&lt;$reveal state=\"$:/status/IsLoggedIn\" type=\"nomatch\" text=\"yes\"&gt;\nLog in to ~TiddlyWeb: &lt;$button message=\"tm-login\"&gt;Login&lt;/$button&gt;\n&lt;/$reveal&gt;\n&lt;$reveal state=\"$:/status/IsLoggedIn\" type=\"match\" text=\"yes\"&gt;\nLogged in as {{$:/status/UserName}} &lt;$button message=\"tm-logout\"&gt;Logout&lt;/$button&gt;\n&lt;/$reveal&gt;\n\n----\n\nHost configuration: &lt;$edit-text tiddler=\"$:/config/tiddlyweb/host\" tag=\"input\" default=\"\"/&gt;\n\n&lt;blockquote&gt;//for example, `$protocol$//$host$/folder`, where `$protocol$` is replaced by the protocol (typically `http` or `https`), and `$host$` by the host name//&lt;/blockquote&gt;\n\n----\n\n&lt;$button message=\"tm-server-refresh\"&gt;Refresh&lt;/$button&gt; to fetch changes from the server immediately\n"
         },
-        &quot;$:/core/templates/html-div-tiddler&quot;: {
-            &quot;title&quot;: &quot;$:/core/templates/html-div-tiddler&quot;,
-            &quot;text&quot;: &quot;&lt;!--\n\nThis template is used for saving tiddlers as an HTML DIV tag with attributes representing the tiddler fields. This version includes the tiddler changecount as the field `revision`.\n\n--&gt;`&lt;div`&lt;$fields exclude='text revision bag' template=' $name$=\&quot;$encoded_value$\&quot;'&gt;&lt;/$fields&gt;` revision=\&quot;`&lt;&lt;changecount&gt;&gt;`\&quot; bag=\&quot;default\&quot;&gt;\n&lt;pre&gt;`&lt;$view field=\&quot;text\&quot; format=\&quot;htmlencoded\&quot; /&gt;`&lt;/pre&gt;\n&lt;/div&gt;`\n&quot;
+        "$:/core/templates/html-div-tiddler": {
+            "title": "$:/core/templates/html-div-tiddler",
+            "text": "&lt;!--\n\nThis template is used for saving tiddlers as an HTML DIV tag with attributes representing the tiddler fields. This version includes the tiddler changecount as the field `revision`.\n\n--&gt;`&lt;div`&lt;$fields exclude='text revision bag' template=' $name$=\"$encoded_value$\"'&gt;&lt;/$fields&gt;` revision=\"`&lt;&lt;changecount&gt;&gt;`\" bag=\"default\"&gt;\n&lt;pre&gt;`&lt;$view field=\"text\" format=\"htmlencoded\" /&gt;`&lt;/pre&gt;\n&lt;/div&gt;`\n"
         },
-        &quot;$:/plugins/tiddlywiki/tiddlyweb/readme&quot;: {
-            &quot;title&quot;: &quot;$:/plugins/tiddlywiki/tiddlyweb/readme&quot;,
-            &quot;text&quot;: &quot;This plugin runs in the browser to synchronise tiddler changes to and from a TiddlyWeb-compatible server (including TiddlyWiki 5 itself, running on Node.js). It is inert when run under Node.js. Disabling this plugin via the browser can not be undone via the browser since this plugin provides the mechanism to synchronize settings with the server.\n\n[[Source code|https://github.com/Jermolene/TiddlyWiki5/blob/master/plugins/tiddlywiki/tiddlyweb]]\n&quot;
+        "$:/plugins/tiddlywiki/tiddlyweb/readme": {
+            "title": "$:/plugins/tiddlywiki/tiddlyweb/readme",
+            "text": "This plugin runs in the browser to synchronise tiddler changes to and from a TiddlyWeb-compatible server (including TiddlyWiki 5 itself, running on Node.js). It is inert when run under Node.js. Disabling this plugin via the browser can not be undone via the browser since this plugin provides the mechanism to synchronize settings with the server.\n\n[[Source code|https://github.com/Jermolene/TiddlyWiki5/blob/master/plugins/tiddlywiki/tiddlyweb]]\n"
         },
-        &quot;$:/plugins/tiddlywiki/tiddlyweb/save/offline&quot;: {
-            &quot;title&quot;: &quot;$:/plugins/tiddlywiki/tiddlyweb/save/offline&quot;,
-            &quot;text&quot;: &quot;\\define saveTiddlerFilter()\n[is[tiddler]] -[[$:/boot/boot.css]] -[[$:/HistoryList]] -[type[application/javascript]library[yes]] -[[$:/boot/boot.js]] -[[$:/boot/bootprefix.js]] -[[$:/plugins/tiddlywiki/filesystem]] -[[$:/plugins/tiddlywiki/tiddlyweb]] +[sort[title]] $(publishFilter)$\n\\end\n{{$:/core/templates/tiddlywiki5.html}}\n&quot;
+        "$:/plugins/tiddlywiki/tiddlyweb/save/offline": {
+            "title": "$:/plugins/tiddlywiki/tiddlyweb/save/offline",
+            "text": "\\define saveTiddlerFilter()\n[is[tiddler]] -[[$:/boot/boot.css]] -[[$:/HistoryList]] -[type[application/javascript]library[yes]] -[[$:/boot/boot.js]] -[[$:/boot/bootprefix.js]] -[[$:/plugins/tiddlywiki/filesystem]] -[[$:/plugins/tiddlywiki/tiddlyweb]] +[sort[title]] $(publishFilter)$\n\\end\n{{$:/core/templates/tiddlywiki5.html}}\n"
         },
         "$:/plugins/tiddlywiki/tiddlyweb/tiddlywebadaptor.js": {
             "title": "$:/plugins/tiddlywiki/tiddlyweb/tiddlywebadaptor.js",
             "type": "application/javascript",
             "module-type": "syncadaptor",
             "text": <%= JSON.stringify(include('files/plugins_tiddlywebadaptor')) %>
+        },
+        "$:/plugins/tiddlywiki/tiddlyweb/ui/buttons": {
+            "title": "$:/plugins/tiddlywiki/tiddlyweb/ui/buttons",
+            "tags": "$:/tags/PageControls",
+            "text": "&lt;$reveal state=\"$:/status/IsLoggedIn\" type=\"nomatch\" text=\"yes\"&gt;&lt;$button message=\"tm-login\"&gt;Login&lt;/$button&gt;&lt;/$reveal&gt;&lt;$reveal state=\"$:/status/IsLoggedIn\" type=\"match\" text=\"yes\"&gt;&lt;$button message=\"tm-logout\"&gt;Login&lt;/$button&gt;&lt;/$reveal&gt;"
         }
     }
 }</pre>

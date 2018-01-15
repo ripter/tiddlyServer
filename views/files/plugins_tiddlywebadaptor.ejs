@@ -90,6 +90,7 @@ void function(){
 	Attempt to login and invoke the callback(err)
 	*/
 	TiddlyWebAdaptor.prototype.login = function(username,password,callback) {
+		debugger;
 		var options = {
 			url: this.host + "challenge/tiddlywebplugins.tiddlyspace.cookie_form",
 			type: "POST",
@@ -109,6 +110,7 @@ void function(){
 	/*
 	*/
 	TiddlyWebAdaptor.prototype.logout = function(callback) {
+		debugger;
 		var options = {
 			url: this.host + "logout",
 			type: "POST",
