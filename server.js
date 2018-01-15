@@ -98,6 +98,11 @@ app.post('/login', passport.authenticate('local', {
   failureRedirect: FAILURE_REDIRECT,
 }));
 
+app.get('/logout', function(req, res) {
+  req.logout();
+  res.redirect('/');
+});
+
 //
 // Tiddly Wiki Routes
 //

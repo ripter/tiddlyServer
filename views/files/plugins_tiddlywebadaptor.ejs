@@ -9,7 +9,6 @@ void function(){
 	/*jslint node: true, browser: true */
 	/*global $tw: false */
 	"use strict";
-	console.info('Custom TiddlyWebAdaptor')
 
 	var CONFIG_HOST_TIDDLER = "$:/config/tiddlyweb/host",
 	DEFAULT_HOST_TIDDLER = "$protocol$//$host$/";
@@ -90,14 +89,12 @@ void function(){
 	Attempt to login and invoke the callback(err)
 	*/
 	TiddlyWebAdaptor.prototype.login = function(username,password,callback) {
-		debugger;
 		var options = {
-			url: this.host + "challenge/tiddlywebplugins.tiddlyspace.cookie_form",
-			type: "POST",
+			url: this.host + 'login',
+			type: 'POST',
 			data: {
-				user: username,
-				password: password,
-				tiddlyweb_redirect: "/status" // workaround to marginalize automatic subsequent GET
+				username,
+				password,
 			},
 			callback: function(err) {
 				callback(err);
@@ -108,22 +105,18 @@ void function(){
 	};
 
 	/*
+	Log the user out by redirecting the the logout page
 	*/
 	TiddlyWebAdaptor.prototype.logout = function(callback) {
-		debugger;
-		var options = {
-			url: this.host + "logout",
-			type: "POST",
-			data: {
-				csrf_token: this.getCsrfToken(),
-				tiddlyweb_redirect: "/status" // workaround to marginalize automatic subsequent GET
-			},
-			callback: function(err,data) {
-				callback(err);
-			}
-		};
-		this.logger.log("Logging out:",options);
-		$tw.utils.httpRequest(options);
+		window.location = this.host + 'logout';
+		// var options = {
+		// 	url: this.host + "logout",
+		// 	type: "POST",
+		// 	callback: function(err,data) {
+		// 		callback(err);
+		// 	}
+		// };
+		// $tw.utils.httpRequest(options);
 	};
 
 	/*
