@@ -24,7 +24,7 @@ clean:
 	-rm -R node_modules/
 
 artifact.build:
-	tar czf artifact.tar.gz public/ src/ views/ server.js package.json
+	tar czf artifact.tar.gz public/ src/ views/ server.js package.json Makefile
 
 artifact.extract:
 	tar xzf artifact.tar.gz
